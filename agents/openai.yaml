@@ -1,0 +1,4 @@
+interface:
+  display_name: "本地视频纯音效"
+  short_description: "为视频和GIF动作制作本地纯音效，逐段输出WAV与同步预览"
+  default_prompt: "使用 $local-video-sfx 为这些动画逐段制作本地纯动作音效，输出48kHz/24-bit立体声WAV和同步MP4，无音乐、人声或环境底声。"

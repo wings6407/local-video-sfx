@@ -1,0 +1,62 @@
+{
+  "version": 1,
+  "id": "projectile-throw",
+  "source": "input.mp4",
+  "source_sha256": "cece2ffd25357432018e4db3b6d433c197a1772b13b17d44e93876b56d414682",
+  "duration_seconds": 2.3,
+  "method": [
+    "procedural"
+  ],
+  "processing": "local",
+  "wav": "projectile-throw.wav",
+  "preview": "projectile-throw.mp4",
+  "events": [
+    {
+      "id": "throw",
+      "type": "whoosh",
+      "at": 0.345,
+      "duration": 0.36,
+      "gain": 0.14,
+      "pan": -0.08,
+      "label": "挥手出手破风",
+      "params": {
+        "low_hz": 280,
+        "high_hz": 4300
+      }
+    },
+    {
+      "id": "impact",
+      "type": "mud",
+      "at": 1.3666666667,
+      "duration": 0.27,
+      "gain": 0.67,
+      "pan": 0.42,
+      "label": "软团落地"
+    },
+    {
+      "id": "scatter",
+      "type": "scatter",
+      "at": 1.39,
+      "duration": 0.48,
+      "gain": 0.08,
+      "pan": 0.42,
+      "label": "小颗粒散落",
+      "params": {
+        "count": 10,
+        "material": "grain"
+      }
+    }
+  ],
+  "seed": 20261019,
+  "stems": [
+    "stems/throw.wav",
+    "stems/impact.wav",
+    "stems/scatter.wav"
+  ],
+  "prompt_notes": {
+    "description_zh": "小软团投出、落地噗叽并散开；只有动作音效，无音乐、人声或环境底声。",
+    "throw": "A single short fast whoosh of a small object thrown through the air. A quick soft swish, rising then falling, stops cleanly. Isolated dry Foley.",
+    "impact": "A single lump of wet sticky mud hits a hard floor with a short low squelchy splat. A few small granular pieces patter and quickly stop. Isolated dry Foley.",
+    "negative": "music, melody, musical instruments, speech, voice, singing, environmental ambience, continuous background noise, wind blowing, birds, traffic, long reverb, echo"
+  }
+}

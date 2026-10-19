@@ -1,0 +1,9 @@
+{
+  "source": "input.mp4",
+  "kind": "video",
+  "width": 960,
+  "height": 720,
+  "frames": 69,
+  "duration_seconds": 2.3,
+  "frame_rate": "30/1"
+}
