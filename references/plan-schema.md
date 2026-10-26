@@ -61,8 +61,8 @@ Rendering preserves positive GIF delays including 10 ms frames. The 30 fps previ
 
 ## Outputs and verification
 
-Each render creates `ID.wav`, `ID.mp4`, `manifest.json`, `verification.json`, and `cue_sheet.csv`; `--stems` adds `stems/EVENT.wav`. Prompt notes are retained in the manifest. `batch` reads `*.json` from one plan directory, checks unique clip IDs, creates one subfolder per clip, and adds `index.json` and `delivery.zip`.
+Each render creates final `ID.ogg`, lossless master `ID.wav`, `ID.mp4`, `manifest.json`, `verification.json`, and `cue_sheet.csv`; `--stems` adds `stems/EVENT.wav`. The root `settings.json` sets final export to Ogg Vorbis (`libvorbis`), target **96 kbps**, 48 kHz stereo. Vorbis is variable bitrate; the actual average bitrate can differ. PCM 24-bit describes the WAV master, not the OGG. Prompt notes and the applied export settings are retained in the manifest. `batch` includes the OGG files in each clip folder, index and ZIP.
 
 All generated paths are checked before writing; existing outputs require `--overwrite`. A successful replacement removes only obsolete stems explicitly listed in the old manifest, preserving other files. The batch ZIP includes only the current delivery's generated files.
 
-Technical checks cover PCM format, sample count, finite samples, clipping, exact zero outside declared event windows, preview codecs, audio/video duration and full decode. They do not classify whether a supplied sample contains speech or music. A manifest identifies procedural and local-sample methods without claiming AI generation.
+Technical checks cover OGG container/codec/nominal bitrate, decoded sample count and clipping, plus master PCM format, finite samples, exact zero outside declared event windows, preview codecs, audio/video duration and full decode. Lossy Vorbis may add faint pre-echo or tails near transients; exact zero outside events is a WAV-master check. They do not classify whether a supplied sample contains speech or music. A manifest identifies procedural and local-sample methods without claiming AI generation. Old manifests without a final-audio field remain verifiable as WAV/MP4 deliveries.

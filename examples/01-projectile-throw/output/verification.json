@@ -10,5 +10,10 @@
   "video_codec": "h264",
   "audio_codec": "aac",
   "preview_duration_seconds": 2.3,
-  "wav_sha256": "4d089c86c3a8e523b2036137e55cf220ff4692afb87311ceb9e0d3dba07d3dd8"
+  "wav_sha256": "4d089c86c3a8e523b2036137e55cf220ff4692afb87311ceb9e0d3dba07d3dd8",
+  "final_audio_format": "ogg",
+  "final_audio_codec": "vorbis",
+  "final_audio_bitrate_kbps": 96,
+  "final_audio_duration_seconds": 2.3,
+  "final_audio_sha256": "dca6640ca41db3b787affa3842fb5f655b1669ac62360df69cf63e552a328f6e"
 }

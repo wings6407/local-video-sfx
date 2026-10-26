@@ -2,6 +2,7 @@ test_batch_preflights_summary_files_before_rendering (test_workflow.WorkflowTest
 test_batch_produces_independent_outputs_and_archive (test_workflow.WorkflowTests.test_batch_produces_independent_outputs_and_archive) ... ok
 test_collect_downloads_media_once_and_records_sources (test_workflow.WorkflowTests.test_collect_downloads_media_once_and_records_sources) ... ok
 test_custom_high_frequency_whoosh_accepts_a_valid_band (test_workflow.WorkflowTests.test_custom_high_frequency_whoosh_accepts_a_valid_band) ... ok
+test_final_ogg_is_vorbis_96kbps_with_the_source_duration (test_workflow.WorkflowTests.test_final_ogg_is_vorbis_96kbps_with_the_source_duration) ... ok
 test_first_case_wav_contract_and_silent_gaps (test_workflow.WorkflowTests.test_first_case_wav_contract_and_silent_gaps) ... ok
 test_gif_final_hold_is_included_in_wav_and_preview (test_workflow.WorkflowTests.test_gif_final_hold_is_included_in_wav_and_preview) ... ok
 test_inspect_reads_video_duration_and_contact_sheet (test_workflow.WorkflowTests.test_inspect_reads_video_duration_and_contact_sheet) ... ok
@@ -15,8 +16,9 @@ test_repeated_render_is_deterministic (test_workflow.WorkflowTests.test_repeated
 test_short_gif_delays_reach_the_actual_final_frame (test_workflow.WorkflowTests.test_short_gif_delays_reach_the_actual_final_frame) ... ok
 test_source_audio_is_excluded_from_preview (test_workflow.WorkflowTests.test_source_audio_is_excluded_from_preview) ... ok
 test_stems_sum_to_mix_with_only_pcm_rounding_error (test_workflow.WorkflowTests.test_stems_sum_to_mix_with_only_pcm_rounding_error) ... ok
+test_verify_rejects_a_damaged_final_ogg (test_workflow.WorkflowTests.test_verify_rejects_a_damaged_final_ogg) ... ok
 
 ----------------------------------------------------------------------
-Ran 17 tests in 52.564s
+Ran 19 tests in 65.366s
 
 OK

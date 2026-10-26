@@ -53,6 +53,12 @@
     "stems/impact.wav",
     "stems/scatter.wav"
   ],
+  "final_audio": "projectile-throw.ogg",
+  "audio_export": {
+    "format": "ogg",
+    "encoder": "libvorbis",
+    "bitrate_kbps": 96
+  },
   "prompt_notes": {
     "description_zh": "小软团投出、落地噗叽并散开；只有动作音效，无音乐、人声或环境底声。",
     "throw": "A single short fast whoosh of a small object thrown through the air. A quick soft swish, rising then falling, stops cleanly. Isolated dry Foley.",

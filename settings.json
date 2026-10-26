@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "final_audio": {
+    "format": "ogg",
+    "encoder": "libvorbis",
+    "bitrate_kbps": 96
+  }
+}

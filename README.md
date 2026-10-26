@@ -1,6 +1,6 @@
 # Local Video SFX · 本地视频纯音效 Skill
 
-为视频、GIF 和网页中的多段动画演示逐段制作动作音效。默认使用本地程序合成，也能导入本地音频素材；输出 **48 kHz / PCM 24-bit / 立体声 WAV** 和同步 **H.264/AAC MP4**。
+为视频、GIF 和网页中的多段动画演示逐段制作动作音效。默认使用本地程序合成，也能导入本地音频素材；最终输出 **Ogg Vorbis `.ogg` / 96 kbps / 48 kHz / 立体声** 和同步 **H.264/AAC MP4**，保留无损 WAV 母版。
 
 适合游戏动作预览、投掷与落地、金属工具攻击、旋风、虹吸及变身效果。可按要求保持无音乐、无人声、无环境底声；静态间隔保持安静。
 
@@ -9,7 +9,8 @@
 [首例：投掷软团、落地散开](examples/01-projectile-throw/README.md) 附 **2.3 秒原始视频、声音计划、分轨 WAV、混音 WAV、同步 MP4 与校验结果**。
 
 - [输入视频](examples/01-projectile-throw/input.mp4)
-- [纯音效 WAV](examples/01-projectile-throw/output/projectile-throw.wav)
+- [最终音效 OGG · 96 kbps](examples/01-projectile-throw/output/projectile-throw.ogg)
+- [无损 WAV 母版](examples/01-projectile-throw/output/projectile-throw.wav)
 - [同步 MP4](examples/01-projectile-throw/output/projectile-throw.mp4)
 - [测试记录](examples/01-projectile-throw/test-report.md)
 
@@ -17,7 +18,7 @@
 
 ## 安装与调用
 
-将仓库作为 `local-video-sfx` 文件夹放入 Codex 的 skills 目录，保持 `SKILL.md`、`scripts/` 与 `references/` 的相对路径。通过 `$local-video-sfx` 调用。
+将仓库作为 `local-video-sfx` 文件夹放入 Codex 的 skills 目录，保持 `SKILL.md`、`settings.json`、`scripts/` 与 `references/` 的相对路径。通过 `$local-video-sfx` 调用。
 
 Python **3.10+**，安装依赖，并确保 `ffmpeg`、`ffprobe` 在 PATH：
 
@@ -55,9 +56,12 @@ python scripts/video_sfx.py batch PLAN_DIRECTORY --out working/delivery
 
 ### 输出
 
+最终音频设定保存在 [settings.json](settings.json)，`render` 与 `batch` 自动读取：`format: ogg`、`encoder: libvorbis`、`bitrate_kbps: 96`。96 为目标码率 96000 bit/s；Vorbis 使用可变码率，实际平均值会随内容变化。OGG 不使用 PCM 24-bit 位深设定。
+
 | 文件 | 内容 |
 | --- | --- |
-| `ID.wav` | 48 kHz、24-bit、立体声纯音效 |
+| `ID.ogg` | 最终交付，Ogg Vorbis、目标 96 kbps、48 kHz、立体声 |
+| `ID.wav` | 无损母版，48 kHz、24-bit、立体声 |
 | `ID.mp4` | 原画面与新音轨的同步预览，30 fps |
 | `stems/` | 可选的各事件分轨，共用混音增益 |
 | `cue_sheet.csv` | 动作事件时间、类型、强弱、声像 |
@@ -73,6 +77,6 @@ python scripts/video_sfx.py batch PLAN_DIRECTORY --out working/delivery
 python -m unittest discover -s tests -v
 ```
 
-17 项测试调用真实 CLI 与 FFmpeg，覆盖首例音轨格式、静音区间、声像、重复生成、分轨还原、GIF 尾帧停顿与 10 ms 帧延迟、奇数画幅、非法输入、覆盖保护、源音轨排除、网页收集及逐段批量打包。[Skill 行为实测](tests/skill-evaluation.md)另记录了独立执行和 GIF 时钟转换。GitHub Actions 在 push / pull request 时运行相同测试。
+测试调用真实 CLI 与 FFmpeg，覆盖 OGG 96 kbps 导出与损坏检测、首例母版格式、静音区间、声像、重复生成、分轨还原、GIF 尾帧停顿与 10 ms 帧延迟、奇数画幅、非法输入、覆盖保护、源音轨排除、网页收集及逐段批量打包。[Skill 行为实测](tests/skill-evaluation.md)另记录了独立执行和 GIF 时钟转换。GitHub Actions 在 push / pull request 时运行相同测试。
 
 代码采用 [MIT License](LICENSE)。示例视频用于本仓库的流程演示与回归测试。

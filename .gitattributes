@@ -6,6 +6,7 @@
 *.yml text eol=lf
 *.txt text eol=lf
 *.wav binary
+*.ogg binary
 *.mp4 binary
 *.jpg binary
 *.png binary

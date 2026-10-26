@@ -35,6 +35,34 @@ def execute(command):
 def probe(path,ffprobe):
     return json.loads(execute([ffprobe,'-v','error','-show_streams','-show_format','-of','json',str(path)]))
 
+def load_export_settings():
+    settings=Path(__file__).resolve().parents[1]/'settings.json'
+    data=json.loads(settings.read_text(encoding='utf-8-sig'))
+    if data.get('version')!=1:raise ValueError('Export settings require version 1')
+    export=data.get('final_audio',{})
+    if export.get('format')!='ogg' or export.get('encoder')!='libvorbis':raise ValueError('The final audio exporter requires Ogg Vorbis')
+    bitrate=export.get('bitrate_kbps')
+    if isinstance(bitrate,bool) or not isinstance(bitrate,int) or not 32<=bitrate<=320:raise ValueError('Vorbis target bitrate must be an integer from 32 to 320 kbps')
+    return export
+
+def export_ogg(wav,destination,ffmpeg,export):
+    execute([ffmpeg,'-hide_banner','-loglevel','error','-y','-i',str(wav),'-map','0:a:0',
+             '-c:a',export['encoder'],'-b:a',str(export['bitrate_kbps'])+'k','-ar',str(RATE),'-ac','2','-f','ogg',str(destination)])
+
+def verify_ogg(path,duration,export,ffmpeg,ffprobe):
+    data=probe(path,ffprobe);streams=data['streams']
+    if len(streams)!=1:raise ValueError('The final OGG must contain one audio stream')
+    stream=streams[0]
+    if data['format']['format_name']!='ogg' or stream.get('codec_name')!='vorbis':raise ValueError('Final audio is not Ogg Vorbis')
+    if stream.get('sample_rate')!=str(RATE) or stream.get('channels')!=2:raise ValueError('Final OGG is not 48 kHz stereo')
+    if int(stream.get('bit_rate',0))!=export['bitrate_kbps']*1000:raise ValueError('Final OGG target bitrate differs from its export settings')
+    audio,rate=sf.read(path,always_2d=True)
+    if rate!=RATE or audio.shape!=(round(duration*RATE),2):raise ValueError('Final OGG decoded length differs from the source')
+    if not np.isfinite(audio).all() or np.max(np.abs(audio),initial=0)>=1:raise ValueError('Decoded final OGG clips or contains non-finite samples')
+    execute([ffmpeg,'-hide_banner','-loglevel','error','-i',str(path),'-f','null','-'])
+    return {'final_audio_format':'ogg','final_audio_codec':'vorbis','final_audio_bitrate_kbps':export['bitrate_kbps'],
+            'final_audio_duration_seconds':len(audio)/RATE,'final_audio_sha256':hashlib.sha256(Path(path).read_bytes()).hexdigest()}
+
 def media_info(path,ffprobe):
     path=Path(path).resolve()
     if not path.is_file():raise ValueError('Media file does not exist: '+str(path))
@@ -133,15 +161,18 @@ def verify(manifest,ffmpeg,ffprobe):
     decoded=np.frombuffer(execute([ffmpeg,'-hide_banner','-loglevel','error','-i',str(preview),'-map','0:a:0','-f','f32le','-']),dtype='<f4')
     if not np.isfinite(decoded).all() or np.max(np.abs(decoded),initial=0)>=1:raise ValueError('Decoded AAC audio clips')
     peak=np.max(np.abs(audio),initial=0);tp=np.max(np.abs(resample_poly(audio,4,1,axis=0)),initial=0)
-    return {'passed':True,'duration_seconds':len(audio)/RATE,'sample_rate':rate,'channels':info.channels,
+    report={'passed':True,'duration_seconds':len(audio)/RATE,'sample_rate':rate,'channels':info.channels,
             'subtype':info.subtype,'peak_dbfs':20*math.log10(peak) if peak else -120,
             'true_peak_dbfs':20*math.log10(tp) if tp else -120,'silent_outside_events':True,
             'video_codec':video['codec_name'],'audio_codec':sound['codec_name'],'preview_duration_seconds':vd,
             'wav_sha256':hashlib.sha256(wav.read_bytes()).hexdigest()}
+    if data.get('final_audio'):
+        report.update(verify_ogg(folder/data['final_audio'],data['duration_seconds'],data['audio_export'],ffmpeg,ffprobe))
+    return report
 
 def render_targets(out,plan,stems=False):
     out=Path(out);identifier=plan['id']
-    files=[out/(identifier+'.wav'),out/(identifier+'.mp4'),out/'manifest.json',out/'verification.json',out/'cue_sheet.csv']
+    files=[out/(identifier+'.wav'),out/(identifier+'.mp4'),out/'manifest.json',out/'verification.json',out/'cue_sheet.csv',out/(identifier+'.ogg')]
     if stems:files.extend(out/'stems'/(event['id']+'.wav') for event in plan['events'])
     return files
 
@@ -149,9 +180,9 @@ def protect_outputs(destinations,overwrite):
     if not overwrite and any(p.exists() for p in destinations):raise ValueError('Output already exists; choose a new directory or pass --overwrite')
 
 def render(file,out,ffmpeg,ffprobe,stems=False,overwrite=False):
-    plan,source,media,base=load_plan(file,ffprobe);out=Path(out);identifier=plan['id']
+    plan,source,media,base=load_plan(file,ffprobe);out=Path(out);identifier=plan['id'];export=load_export_settings()
     destinations=render_targets(out,plan,stems);protect_outputs(destinations,overwrite)
-    wav,preview,manifest=destinations[:3];previous_stems=[]
+    wav,preview,manifest=destinations[:3];ogg=destinations[5];previous_stems=[]
     if overwrite and manifest.is_file():
         try:previous_stems=json.loads(manifest.read_text(encoding='utf-8')).get('stems',[])
         except (ValueError,AttributeError):pass
@@ -159,6 +190,7 @@ def render(file,out,ffmpeg,ffprobe,stems=False,overwrite=False):
     audio,layers,allowed=mix_events(plan['events'],media['duration_seconds'],plan.get('seed',20261019),base,plan.get('peak_dbfs',-2))
     out.mkdir(parents=True,exist_ok=True)
     sf.write(wav,audio,RATE,subtype='PCM_24')
+    export_ogg(wav,ogg,ffmpeg,export)
     if stems:
         (out/'stems').mkdir(exist_ok=True)
         for name,layer in layers.items():sf.write(out/'stems'/(name+'.wav'),layer,RATE,subtype='PCM_24')
@@ -173,6 +205,7 @@ def render(file,out,ffmpeg,ffprobe,stems=False,overwrite=False):
           'duration_seconds':media['duration_seconds'],'method':methods or ['silence'],'processing':'local',
           'wav':wav.name,'preview':preview.name,'events':plan['events'],'seed':plan.get('seed',20261019),
           'stems':['stems/'+name+'.wav' for name in layers] if stems else [],
+          'final_audio':ogg.name,'audio_export':export,
           'prompt_notes':plan.get('prompt_notes',{})}
     dump(manifest,data);dump(out/'verification.json',verify(manifest,ffmpeg,ffprobe))
     with (out/'cue_sheet.csv').open('w',newline='',encoding='utf-8-sig') as f:
@@ -183,7 +216,7 @@ def render(file,out,ffmpeg,ffprobe,stems=False,overwrite=False):
         if isinstance(name,str) and re.fullmatch(r'stems/[A-Za-z0-9][A-Za-z0-9_-]{0,79}\.wav',name) and name not in data['stems']:
             old=(out/name).resolve()
             if old.is_relative_to(out.resolve()) and old.is_file():old.unlink()
-    return {'id':identifier,'manifest':str(manifest),'duration_seconds':media['duration_seconds']}
+    return {'id':identifier,'manifest':str(manifest),'final_audio':str(ogg),'duration_seconds':media['duration_seconds']}
 
 class MediaLinks(HTMLParser):
     def __init__(self):super().__init__();self.links=[]
@@ -239,7 +272,7 @@ def main():
             for _,plan in loaded:targets.extend(render_targets(out/plan['id'],plan,args.stems))
             protect_outputs(targets,args.overwrite)
             results=[render(p,out/plan['id'],args.ffmpeg,args.ffprobe,args.stems,args.overwrite) for p,plan in loaded]
-            out=Path(args.out);result={'clips':[{'id':r['id'],'manifest':r['id']+'/manifest.json','duration_seconds':r['duration_seconds']} for r in results]}
+            out=Path(args.out);result={'clips':[{'id':r['id'],'manifest':r['id']+'/manifest.json','final_audio':r['id']+'/'+r['id']+'.ogg','duration_seconds':r['duration_seconds']} for r in results]}
             dump(out/'index.json',result)
             archive=out/'delivery.zip'
             with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as z:

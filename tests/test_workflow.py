@@ -12,6 +12,7 @@ import sys
 import tempfile
 import threading
 import unittest
+import zipfile
 import numpy as np
 import soundfile as sf
 from PIL import Image
@@ -82,6 +83,26 @@ class WorkflowTests(unittest.TestCase):
         report=json.loads(r.stdout)
         self.assertEqual(report['video_codec'],'h264');self.assertEqual(report['audio_codec'],'aac')
         self.assertLessEqual(abs(report['preview_duration_seconds']-2.3),.034)
+    def test_final_ogg_is_vorbis_96kbps_with_the_source_duration(self):
+        out=self.render();ogg=out/'projectile.ogg'
+        self.assertTrue(ogg.is_file(),'The final OGG delivery was not generated')
+        result=subprocess.run([shutil.which('ffprobe'),'-v','error','-show_streams','-show_format','-of','json',str(ogg)],capture_output=True)
+        self.assertEqual(result.returncode,0,result.stderr.decode(errors='replace'))
+        media=json.loads(result.stdout);stream=media['streams'][0]
+        self.assertEqual(media['format']['format_name'],'ogg')
+        self.assertEqual(stream['codec_name'],'vorbis');self.assertEqual(int(stream['bit_rate']),96000)
+        decoded,rate=sf.read(ogg,always_2d=True)
+        self.assertEqual(rate,48000);self.assertEqual(decoded.shape,(110400,2))
+        self.assertTrue(np.isfinite(decoded).all());self.assertLess(np.max(np.abs(decoded)),1)
+        report=json.loads(run_cli('verify',out/'manifest.json').stdout)
+        self.assertEqual(report['final_audio_codec'],'vorbis')
+        self.assertEqual(report['final_audio_bitrate_kbps'],96)
+    def test_verify_rejects_a_damaged_final_ogg(self):
+        out=self.render();ogg=out/'projectile.ogg'
+        self.assertTrue(ogg.is_file())
+        ogg.write_bytes(b'not an OGG file')
+        result=run_cli('verify',out/'manifest.json')
+        self.assertNotEqual(result.returncode,0)
     def make_gif(self,size=(48,32)):
         frames=[Image.new('RGB',size,(i*6,80,170)) for i in range(39)]
         path=self.folder/'held.gif'
@@ -132,7 +153,7 @@ class WorkflowTests(unittest.TestCase):
         self.assertEqual((out/'projectile.wav').read_bytes(),before)
     def test_overwrite_protects_reports_and_requested_stems(self):
         plan=self.save_plan(self.plan())
-        for name in ['cue_sheet.csv','verification.json','stems/throw.wav']:
+        for name in ['cue_sheet.csv','verification.json','stems/throw.wav','projectile.ogg']:
             with self.subTest(name=name):
                 out=self.folder/('collision-'+name.replace('/','-'));target=out/name
                 target.parent.mkdir(parents=True);target.write_bytes(b'keep this file')
@@ -181,6 +202,8 @@ class WorkflowTests(unittest.TestCase):
         self.assertEqual(r.returncode,0,r.stderr)
         self.assertTrue((out/'one/one.wav').exists());self.assertTrue((out/'two/two.wav').exists())
         self.assertTrue((out/'delivery.zip').exists())
+        with zipfile.ZipFile(out/'delivery.zip') as archive:
+            self.assertIn('one/one.ogg',archive.namelist());self.assertIn('two/two.ogg',archive.namelist())
     def test_collect_downloads_media_once_and_records_sources(self):
         self.assertEqual(run_cli('--help').returncode,0)
         web=self.folder/'web';web.mkdir();shutil.copy2(self.make_gif(),web/'clip.gif');shutil.copy2(INPUT,web/'movie.mp4')
